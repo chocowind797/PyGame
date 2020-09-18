@@ -4,68 +4,91 @@ import pygame
 import threading
 from pygame.locals import *
 
-spaces = []
+s = open('space.txt')
+pat = int(s.readline().split(':')[1])
+checkpoint = 0
+spaces = [[], []]
 isDown = True
-size = [0, 550, 50, 50]
-finish = None
+canLeft = True
+size = [0, 600 - pat]
+ss = s.readline().split(':')[1].split(",")
+finish = pygame.Rect(800 - pat - int(ss[0]), 600 - pat - int(ss[1]), pat, pat)
+rect = None
 
 
 def checkDown():
     global isDown
-
-    while rect[1] < 500 + size[3]:
+    global canLeft
+    while rect[1] < 600 - pat:
         canMove = True
 
         time.sleep(0.5)
+        canLeft = False
 
-        pygame.draw.rect(win, (255, 255, 255), rect)
-        drawLines()
-        pygame.display.update()
-
-        if rect[1] < 500 + size[3]:
-            for space in spaces:
-                if rect[1] + 50 == space.top and rect[0] == space.left:
+        if rect[1] < 600 - pat:
+            for space in spaces[checkpoint]:
+                if rect[1] + pat == space.top and rect[0] == space.left:
                     canMove = False
             if canMove:
-                rect.move_ip(0, 50)
-        pygame.draw.rect(win, (100, 100, 100), rect)
+                pygame.draw.rect(win, (255, 255, 255), rect)
+                drawLines()
+                pygame.display.update()
+                rect.move_ip(0, pat)
+                pygame.draw.rect(win, (100, 100, 100), rect)
 
-        drawLines()
-        pygame.display.update()
-        isDown = True
-        time.sleep(0.75)
+                drawLines()
+                pygame.display.update()
+            else:
+                break
+    canLeft = True
+    isDown = True
+    time.sleep(0.5)
 
 
-def drawFinish(a, b):
+def drawFinish():
     global finish
-    finish = pygame.Rect(a, b, 50, 50)
     pygame.draw.rect(win, (0, 0, 255), finish)
 
 
-def space():
-    rows = open('space.txt').read().split('\n')
-    i = 0
-    for row in rows:
-        if row.__contains__('='):
-            pass
-        if row.__contains__('finish:'):
-            row = row.split(":")[1].split(",")
-            drawFinish(int(row[0]), int(row[1]))
-            break
-        row = row.split(",")
-        if len(row) == 1:
-            continue
-        rect_local = pygame.Rect(int(row[0]), int(row[1]), 50, 50)
-        pygame.draw.rect(win, (255, 0, 0), rect_local)
-        spaces.append(rect_local)
+def drawspace():
+    global rect
+    win.fill((255, 255, 255))
+    if rect is None:
+        rect = pygame.Rect(size[0], size[1], pat, pat)
+    else:
+        rect.move_ip(pat - 800, 0)
+    pygame.draw.rect(win, (100, 100, 100), rect)
+    for space in spaces[checkpoint]:
+        pygame.draw.rect(win, (255, 0, 0), space)
+    drawFinish()
+    drawLines()
     pygame.display.update()
 
 
+def space():
+    # rows = open('space.txt').read().split('\n')
+    i = checkpoint
+    global finish
+
+    for row in s.readlines():
+        row = row.replace('\n', '')
+        if row.__contains__(':'):
+            continue
+        if row.__contains__('='):
+            i += 1
+            spaces.append(list())
+            continue
+        row = row.split(",")
+        rect_local = pygame.Rect(int(row[0]), 600 - pat - int(row[1]), pat, pat)
+        spaces[i].append(rect_local)
+    drawspace()
+
+
 def drawLines():
-    for i in range(size[2], 800, size[2]):
+    for i in range(pat, 800, pat):
         pygame.draw.aaline(win, (0, 0, 0), (i, 0), (i, 600), 2)
 
-    for i in range(size[3], 600, size[3]):
+    for i in range(pat, 600, pat):
         pygame.draw.aaline(win, (0, 0, 0), (0, i), (800, i), 2)
 
 
@@ -75,34 +98,37 @@ keys = [K_RIGHT, K_LEFT, K_UP, K_DOWN]
 def checkKey(event):
     if keys.__contains__(event.key):
         global isDown
+        global canLeft
+        global checkpoint
+
         canMove = True
-        if event.key == K_RIGHT:
+        if event.key == K_RIGHT and canLeft:
             pygame.draw.rect(win, (255, 255, 255), rect)
-            if rect[0] < 700 + size[2]:
-                for space in spaces:
-                    if rect[0] + 50 == space.left and rect[1] == space.top:
+            if rect[0] < 800 - pat:
+                for space in spaces[checkpoint]:
+                    if rect[0] + pat == space.left and rect[1] == space.top:
                         canMove = False
                         break
                 if canMove:
-                    rect.move_ip(50, 0)
-        elif event.key == K_LEFT:
+                    rect.move_ip(pat, 0)
+        elif event.key == K_LEFT and canLeft:
             pygame.draw.rect(win, (255, 255, 255), rect)
             if rect[0] > 0:
-                for space in spaces:
-                    if rect[0] - 50 == space.left and rect[1] == space.top:
+                for space in spaces[checkpoint]:
+                    if rect[0] - pat == space.left and rect[1] == space.top:
                         canMove = False
                         break
                 if canMove:
-                    rect.move_ip(-50, 0)
+                    rect.move_ip(-pat, 0)
         elif event.key == K_UP and isDown:
             pygame.draw.rect(win, (255, 255, 255), rect)
             if rect[1] > 0:
-                for space in spaces:
-                    if rect[1] - 50 == space.top and rect[0] == space.left:
+                for space in spaces[checkpoint]:
+                    if rect[1] - pat == space.top and rect[0] == space.left:
                         canMove = False
                         break
                 if canMove:
-                    rect.move_ip(0, -50)
+                    rect.move_ip(0, -pat)
         pygame.draw.rect(win, (100, 100, 100), rect)
         drawLines()
         pygame.display.update()
@@ -111,18 +137,21 @@ def checkKey(event):
         # print('--------------')
         # print(rect[0], spaces[0].left)
         # print("==============")
-        if rect[1] < 500 + size[3]:
+        if rect[1] < 600 - pat:
             threading.Thread(target=checkDown).start()
             isDown = False
-
         if rect[0] == finish.left and rect[1] == finish.top:
-            finish_raw_pic = pygame.image.load('./遊戲結束.jpg').convert()
-            finish_pic = pygame.transform.scale(finish_raw_pic, win.get_size())
-            win.blit(finish_pic, win.get_rect())
-            pygame.display.update()
-            time.sleep(2)
-            pygame.quit()
-            sys.exit()
+            if checkpoint == len(spaces) - 2:
+                finish_raw_pic = pygame.image.load('./遊戲結束.jpg').convert()
+                finish_pic = pygame.transform.scale(finish_raw_pic, win.get_size())
+                win.blit(finish_pic, win.get_rect())
+                pygame.display.update()
+                time.sleep(2)
+                pygame.quit()
+                sys.exit()
+            else:
+                checkpoint += 1
+                drawspace()
     elif event.key == K_ESCAPE:
         pygame.quit()
         sys.exit()
@@ -133,15 +162,7 @@ if __name__ == '__main__':
 
     win = pygame.display.set_mode((800, 600))
 
-    win.fill((255, 255, 255))
-
     space()
-    drawLines()
-
-    rect = pygame.Rect(size[0], size[1], size[2], size[3])
-    pygame.draw.rect(win, (100, 100, 100), rect)
-
-    pygame.display.update()
 
     while True:
         for event in pygame.event.get():
