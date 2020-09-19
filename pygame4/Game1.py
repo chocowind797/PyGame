@@ -1,7 +1,7 @@
-import sys
-import time
+from sys import exit
+from time import sleep
 import pygame
-import threading
+from threading import Thread
 from pygame.locals import *
 
 s = open('space.txt')
@@ -14,6 +14,7 @@ size = [0, 600 - pat]
 ss = s.readline().split(':')[1].split(",")
 finish = pygame.Rect(800 - pat - int(ss[0]), 600 - pat - int(ss[1]), pat, pat)
 rect = None
+win = None
 
 
 def checkDown():
@@ -22,7 +23,7 @@ def checkDown():
     while rect[1] < 600 - pat:
         canMove = True
 
-        time.sleep(0.5)
+        sleep(0.5)
         canLeft = False
 
         if rect[1] < 600 - pat:
@@ -42,7 +43,7 @@ def checkDown():
                 break
     canLeft = True
     isDown = True
-    time.sleep(0.5)
+    sleep(0.35)
 
 
 def drawFinish():
@@ -52,6 +53,8 @@ def drawFinish():
 
 def drawspace():
     global rect
+    global checkpoint
+    pygame.display.set_caption('第%d關' % (checkpoint+1))
     win.fill((255, 255, 255))
     if rect is None:
         rect = pygame.Rect(size[0], size[1], pat, pat)
@@ -138,7 +141,7 @@ def checkKey(event):
         # print(rect[0], spaces[0].left)
         # print("==============")
         if rect[1] < 600 - pat:
-            threading.Thread(target=checkDown).start()
+            Thread(target=checkDown).start()
             isDown = False
         if rect[0] == finish.left and rect[1] == finish.top:
             if checkpoint == len(spaces) - 2:
@@ -146,20 +149,21 @@ def checkKey(event):
                 finish_pic = pygame.transform.scale(finish_raw_pic, win.get_size())
                 win.blit(finish_pic, win.get_rect())
                 pygame.display.update()
-                time.sleep(2)
+                sleep(1.5)
                 pygame.quit()
-                sys.exit()
+                exit()
             else:
                 checkpoint += 1
                 drawspace()
     elif event.key == K_ESCAPE:
         pygame.quit()
-        sys.exit()
+        exit()
 
 
-if __name__ == '__main__':
+def main():
     pygame.init()
 
+    global win
     win = pygame.display.set_mode((800, 600))
 
     space()
@@ -168,6 +172,6 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
-                sys.exit()
+                exit()
             elif event.type == KEYDOWN:
                 checkKey(event)
